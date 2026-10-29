@@ -1,0 +1,113 @@
+#!/bin/sh
+
+set -eu
+
+usage() {
+    cat <<'EOF'
+Cách dùng: ocr-copy [ẢNH...]
+
+  ocr-copy          Kéo chọn một vùng trên màn hình, nhận dạng chữ trong vùng đó
+                    và copy vào clipboard. Nhấn Esc để huỷ.
+  ocr-copy ẢNH...   Nhận dạng chữ trong các file ảnh và copy vào clipboard.
+  ocr-copy --help   Hiển thị hướng dẫn này.
+
+Sau khi chạy install.sh: phím tắt Super+Shift+T, và trong Files (Nautilus)
+chuột phải vào ảnh > Scripts > Copy chữ từ ảnh.
+Ngôn ngữ mặc định là vie+eng; đổi bằng biến OCR_LANG, ví dụ: OCR_LANG=eng ocr-copy
+EOF
+}
+
+case "${1-}" in
+    --help|-h) usage; exit 0 ;;
+esac
+
+lang=${OCR_LANG:-vie+eng}
+
+notify() {
+    command -v notify-send >/dev/null 2>&1 || return 0
+    # GNOME renders the body as markup.
+    body=$(printf '%s' "${2-}" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')
+    notify-send --app-name='Copy chữ từ ảnh' --icon=edit-copy -- "$1" "$body" || true
+}
+
+fail() {
+    printf '%s\n' "$1${2:+: $2}" >&2
+    notify "$@"
+    exit 1
+}
+
+need() {
+    for cmd; do
+        command -v "$cmd" >/dev/null 2>&1 ||
+            fail "Thiếu lệnh $cmd" 'Chạy lại install.sh trong thư mục mã nguồn ocr-copy'
+    done
+}
+
+# On GNOME, wl-copy hangs without keyboard focus, which a shortcut-launched process lacks.
+# Go through XWayland when it exists; GNOME shares that clipboard with Wayland apps.
+if [ -n "${DISPLAY-}" ]; then
+    clip='xclip -selection clipboard'
+else
+    clip='wl-copy'
+fi
+
+need tesseract "${clip%% *}"
+[ "$#" -gt 0 ] || need gnome-screenshot
+
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+
+if [ "$#" -eq 0 ]; then
+    gnome-screenshot --area --file="$tmp/shot.png" 2>/dev/null || true
+    # Esc cancels the selection without creating the file.
+    [ -s "$tmp/shot.png" ] || exit 0
+    set -- "$tmp/shot.png"
+fi
+
+# Screen text is around 96 DPI; Tesseract reads small glyphs far better at 2x.
+upscale() {
+    python3 - "$1" "$2" <<'EOF'
+import sys
+import gi
+gi.require_version('GdkPixbuf', '2.0')
+from gi.repository import GdkPixbuf
+pixbuf = GdkPixbuf.Pixbuf.new_from_file(sys.argv[1])
+w, h = pixbuf.get_width(), pixbuf.get_height()
+if w * h > 4_000_000:
+    sys.exit(1)
+pixbuf.scale_simple(w * 2, h * 2, GdkPixbuf.InterpType.BILINEAR).savev(sys.argv[2], 'png', [], [])
+EOF
+}
+
+ocr() {
+    img=$tmp/scaled.png
+    upscale "$1" "$img" 2>/dev/null || img=$1
+    text=$(tesseract "$img" - -l "$lang" -c page_separator= 2>/dev/null) || return 1
+    if [ -z "$(printf '%s' "$text" | tr -d '[:space:]')" ]; then
+        # Automatic layout analysis can miss a lone line; retry as one text block.
+        text=$(tesseract "$img" - -l "$lang" --psm 6 -c page_separator= 2>/dev/null) || return 1
+    fi
+    printf '%s' "$text"
+}
+
+out=$tmp/text.txt
+: >"$out"
+for img; do
+    [ -r "$img" ] || fail 'Không đọc được file' "$img"
+    text=$(ocr "$img") || fail 'Lỗi khi nhận dạng chữ' "$img"
+    [ -n "$(printf '%s' "$text" | tr -d '[:space:]')" ] || continue
+    [ ! -s "$out" ] || printf '\n\n' >>"$out"
+    printf '%s' "$text" >>"$out"
+done
+
+[ -s "$out" ] || fail 'Không tìm thấy chữ trong ảnh'
+
+# The clipboard tool stays in the background; detach it so pipes reading our output can finish.
+$clip <"$out" >/dev/null 2>&1 || fail 'Không copy được vào clipboard'
+cat "$out"
+echo
+
+# Cut by bytes, then drop any Vietnamese character split at the end.
+preview=$(tr -s '[:space:]' ' ' <"$out" | head -c 160 | iconv -c -f UTF-8 -t UTF-8 2>/dev/null) || true
+[ "$(wc -c <"$out")" -le 160 ] || preview="$preview…"
+notify 'Đã copy chữ vào clipboard' "$preview"
