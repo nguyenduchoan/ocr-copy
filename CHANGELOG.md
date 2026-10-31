@@ -6,6 +6,16 @@ Mọi thay đổi đáng chú ý được ghi ở đây. Định dạng theo
 
 ## [Chưa phát hành]
 
+### Thêm
+
+- Bản Windows 10/11: `ocr-copy.ps1` và launcher `ocr-copy.cmd`, chọn vùng màn
+  hình (Esc/chuột phải để huỷ), OCR một/nhiều file ảnh và clipboard Unicode.
+- `install.ps1`/`uninstall.ps1`: cài/gỡ theo tài khoản hiện tại, lưu cấu hình
+  Tesseract/ngôn ngữ, shortcut Start và phím tắt Ctrl+Alt+T.
+- Kiểm tra dữ liệu ngôn ngữ trước khi OCR, giữ đầu ra UTF-8 và thử lại bằng
+  `--psm 6` khi không thấy chữ; không thay đổi bản Linux.
+- Hướng dẫn Windows và workflow kiểm thử Windows PowerShell 5.1.
+
 ## [1.0.0] - 2026-10-29
 
 ### Thêm

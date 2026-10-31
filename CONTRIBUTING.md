@@ -8,15 +8,17 @@ Cảm ơn bạn đã quan tâm! Issue và pull request bằng tiếng Việt hay
 Hãy [tạo issue](https://github.com/nguyenduchoan/ocr-copy/issues/new/choose) và
 ghi kèm:
 
-- Phiên bản Debian và GNOME, đang dùng Wayland hay Xorg.
+- Hệ điều hành: phiên bản Debian/GNOME và Wayland/Xorg, hoặc phiên bản Windows
+  cùng PowerShell/Tesseract.
 - Những gì in ra khi chạy `ocr-copy` trong Terminal.
 - Nếu chữ bị nhận dạng sai: ảnh gốc (nếu không có thông tin riêng tư) và kết quả
   nhận được.
 
 ## Viết code
 
-- Mọi script dùng `#!/bin/sh` và chỉ dùng cú pháp POSIX, không dùng tính năng
-  riêng của Bash.
+- Script Linux dùng `#!/bin/sh` và chỉ dùng cú pháp POSIX, không dùng tính
+  năng riêng của Bash. Script Windows tương thích Windows PowerShell 5.1;
+  lưu `.ps1`/`.psm1` bằng UTF-8 có BOM để giữ đúng tiếng Việt.
 - Comment trong code viết bằng tiếng Anh. Thông báo hiện cho người dùng viết
   bằng tiếng Việt có dấu.
 - Chạy [ShellCheck](https://www.shellcheck.net/) trước khi gửi pull request.
@@ -41,6 +43,26 @@ Nếu sửa phần chụp màn hình, clipboard hoặc phím tắt, hãy thử b
 Super+Shift+T sau khi chạy `./install.sh`, trên cả phiên Wayland và Xorg nếu có
 thể. Lệnh chạy từ phím tắt không có focus bàn phím, nên có lỗi chỉ xuất hiện khi
 chạy theo cách này.
+
+Với Windows, kiểm tra logic lõi bằng PowerShell (chạy được cả trên Linux với
+PowerShell 7):
+
+```powershell
+pwsh -NoProfile -File ./tests/windows.tests.ps1
+```
+
+Trên Windows có Tesseract và dữ liệu `vie+eng`, kiểm tra OCR thật, clipboard sau
+khi tiến trình kết thúc, cài/cài lại/gỡ và biên dịch overlay:
+
+```powershell
+powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\tests\windows.tests.ps1 -Desktop
+```
+
+Bộ kiểm thử này ghi clipboard và tạm thay shortcut Start của ocr-copy, sau đó
+khôi phục shortcut đã có. Nên chạy trong phiên Windows dùng để kiểm thử.
+GitHub Actions chạy cùng lệnh trên Windows PowerShell 5.1. Thử thủ công thêm
+Ctrl+Alt+T, Esc, chuột phải, thông báo, nhiều màn hình và DPI 100%/150%/200%
+theo [bản ghi kiểm chứng](docs/windows-validation.md).
 
 ## Phát hành (dành cho người duy trì)
 

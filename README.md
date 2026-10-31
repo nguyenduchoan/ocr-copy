@@ -5,22 +5,28 @@
 
 **Tiếng Việt** | [English](README.en.md)
 
-Copy chữ từ ảnh trên Linux, giống Live Text trên macOS.
+Copy chữ từ ảnh trên Linux và Windows, giống Live Text trên macOS.
 
 Nhấn **Super+Shift+T**, kéo chọn một vùng bất kỳ trên màn hình (ảnh, video,
 PDF, trang web, cửa sổ ứng dụng…) rồi dán bằng **Ctrl+V**. `ocr-copy` nhận dạng
 chữ (OCR) trong vùng đó bằng [Tesseract][tesseract] và copy vào clipboard. Mọi
 thứ chạy trên máy của bạn, ảnh không được gửi đi đâu cả.
 
+**Windows 10/11:** dùng bản PowerShell với phím tắt **Ctrl+Alt+T**. Xem
+[hướng dẫn Windows](docs/windows.md) để cài đặt và sử dụng. Các lệnh shell
+bên dưới dành cho Linux/GNOME.
+
 ## Tính năng
 
 - Nhận dạng tiếng Việt có dấu và tiếng Anh (`vie+eng`), đổi được sang ngôn ngữ
   khác.
-- Ba cách dùng: phím tắt, chuột phải trong Files (Nautilus) và dòng lệnh.
-- Chạy được trên cả Wayland lẫn Xorg.
+- Linux: phím tắt, chuột phải trong Files (Nautilus) và dòng lệnh; hỗ trợ
+  Wayland lẫn Xorg.
+- Windows 10/11: chọn vùng màn hình, đọc một/nhiều ảnh, clipboard Unicode,
+  shortcut trong Start và phím tắt Ctrl+Alt+T; không cần WSL hay Python.
 - Hiện thông báo kèm đoạn đầu của chữ vừa copy.
 - Chạy offline, không cần tài khoản hay API key.
-- Chỉ gồm vài script shell POSIX ngắn, dễ đọc và dễ sửa.
+- Bản Linux dùng shell POSIX; bản Windows dùng PowerShell và Windows Forms.
 
 ## Yêu cầu
 

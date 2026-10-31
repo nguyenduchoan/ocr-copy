@@ -1,0 +1,38 @@
+name: Windows
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install Tesseract for integration tests
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $url = 'https://github.com/UB-Mannheim/tesseract/releases/download/v5.4.0.20240606/tesseract-ocr-w64-setup-5.4.0.20240606.exe'
+          $installer = Join-Path $env:RUNNER_TEMP 'tesseract-setup.exe'
+          Invoke-WebRequest $url -OutFile $installer -UseBasicParsing
+          $expected = 'C885FFF6998E0608BA4BB8AB51436E1C6775C2BAFC2559A19B423E18678B60C9'
+          if ((Get-FileHash $installer -Algorithm SHA256).Hash -ne $expected) {
+              throw 'Tesseract installer checksum mismatch.'
+          }
+          $process = Start-Process $installer -ArgumentList "/S /D=$env:ProgramFiles\Tesseract-OCR" -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Tesseract install failed: $($process.ExitCode)" }
+          $model = Join-Path $env:ProgramFiles 'Tesseract-OCR/tessdata/vie.traineddata'
+          $modelUrl = 'https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/87416418657359cb625c412a48b6e1d6d41c29bd/vie.traineddata'
+          Invoke-WebRequest $modelUrl -OutFile $model -UseBasicParsing
+          if ((Get-FileHash $model -Algorithm SHA256).Hash -ne '79DF64CAF7BCFB2A27DF5042ECB6121E196EADA34DA774956995747636D5BFA1') {
+              throw 'Vietnamese model checksum mismatch.'
+          }
+      - name: Test on Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $engine = Join-Path $env:ProgramFiles 'Tesseract-OCR/tesseract.exe'
+          ./tests/windows.tests.ps1 -Desktop -TesseractPath $engine
