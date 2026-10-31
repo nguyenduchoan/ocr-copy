@@ -179,12 +179,14 @@ exit 7
                 $shortcut = $null
                 try {
                     $shortcut = $shell.CreateShortcut($shortcutPath)
+                    # WSH can return modifiers in a different order than the setter.
+                    $hotkey = (($shortcut.Hotkey -split '\+' | Sort-Object) -join '+').ToUpperInvariant()
                     if ($attempt -eq 0) {
-                        Assert-True ($shortcut.Hotkey -eq 'Ctrl+Alt+T') 'Không gán đúng phím tắt mặc định.'
+                        Assert-True ($hotkey -eq 'ALT+CTRL+T') "Không gán đúng phím tắt mặc định: $($shortcut.Hotkey)"
                         $shortcut.Hotkey = 'CTRL+ALT+Y'
                         $shortcut.Save()
                     }
-                    else { Assert-True ($shortcut.Hotkey -eq 'Ctrl+Alt+Y') 'Cài lại làm mất phím tắt đã đổi.' }
+                    else { Assert-True ($hotkey -eq 'ALT+CTRL+Y') "Cài lại làm mất phím tắt đã đổi: $($shortcut.Hotkey)" }
                 }
                 finally {
                     if ($shortcut) { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($shortcut) }
